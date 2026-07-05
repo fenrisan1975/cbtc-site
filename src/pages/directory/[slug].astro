@@ -1,0 +1,47 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getBusinessBySlug } from '../../lib/businesses.js';
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+const business = await getBusinessBySlug(slug);
+
+if (!business) {
+  return new Response(null, { status: 404, statusText: 'Business not found' });
+}
+---
+
+<BaseLayout title={`${business.name} — Constance Bay Trading Company`}>
+  <a href="/directory" style="font-size:13px;">&larr; Back to directory</a>
+
+  <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-top:12px;">
+    <h1 style="margin-bottom:4px;">{business.name}</h1>
+    <favorite-button
+      data-business-id={business.id}
+      data-count={business.favorite_count}
+    ></favorite-button>
+  </div>
+
+  {business.category_name && (
+    <div style="font-size:13px; font-weight:800; letter-spacing:0.5px; text-transform:uppercase; color:var(--teal); margin-bottom:14px;">
+      {business.category_name}
+    </div>
+  )}
+
+  {business.description && <p>{business.description}</p>}
+
+  <div class="card" style="margin-top:16px;">
+    {business.address && <p><strong>Address:</strong> {business.address}</p>}
+    {business.phone && <p><strong>Phone:</strong> {business.phone}</p>}
+    {business.email && <p><strong>Email:</strong> {business.email}</p>}
+    {business.website && (
+      <p><strong>Website:</strong> <a href={business.website} target="_blank" rel="noopener noreferrer">{business.website}</a></p>
+    )}
+    {business.hours && <p><strong>Hours:</strong> {business.hours}</p>}
+  </div>
+</BaseLayout>
+
+<script>
+  import '../../components/favorite-button.js';
+</script>

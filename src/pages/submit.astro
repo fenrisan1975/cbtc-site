@@ -1,0 +1,81 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCategories } from '../lib/businesses.js';
+
+export const prerender = false;
+
+const categories = await getCategories();
+---
+
+<BaseLayout title="Add Your Business — Constance Bay Trading Company">
+  <h1>Add Your Business</h1>
+  <p>
+    Fill this out and it'll land in a review queue — once approved, it shows
+    up in the public directory. Fields marked * are required.
+  </p>
+
+  <form id="submit-form">
+    <label for="name">Business name *</label>
+    <input type="text" id="name" name="name" required />
+
+    <label for="categoryId">Category</label>
+    <select id="categoryId" name="categoryId">
+      <option value="">Choose a category&hellip;</option>
+      {categories.map((cat) => (
+        <option value={cat.id}>{cat.name}</option>
+      ))}
+    </select>
+
+    <label for="description">Short description</label>
+    <textarea id="description" name="description" placeholder="What do you do, and what makes you worth a visit?"></textarea>
+
+    <label for="address">Address</label>
+    <input type="text" id="address" name="address" />
+
+    <label for="phone">Phone</label>
+    <input type="tel" id="phone" name="phone" />
+
+    <label for="email">Contact email *</label>
+    <input type="email" id="email" name="email" required />
+
+    <label for="website">Website</label>
+    <input type="url" id="website" name="website" placeholder="https://" />
+
+    <label for="hours">Hours</label>
+    <input type="text" id="hours" name="hours" placeholder="e.g. Mon–Fri 9am–5pm" />
+
+    <button type="submit" class="btn" style="margin-top:20px;">Submit for review</button>
+    <p id="submit-message" style="font-size:13px; margin-top:10px;"></p>
+  </form>
+</BaseLayout>
+
+<script>
+  const form = document.getElementById('submit-form');
+  const message = document.getElementById('submit-message');
+
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const data = Object.fromEntries(new FormData(form).entries());
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    message.textContent = '';
+
+    try {
+      const res = await fetch('/api/submit-business', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (res.ok) {
+        window.location.href = '/thank-you';
+      } else {
+        message.textContent = result.error || 'Something went wrong -- try again.';
+        submitBtn.disabled = false;
+      }
+    } catch {
+      message.textContent = 'Something went wrong -- try again.';
+      submitBtn.disabled = false;
+    }
+  });
+</script>

@@ -1,0 +1,138 @@
+:root {
+  --navy: #0a1628;
+  --navy-deep: #071020;
+  --teal: #1a6b7a;
+  --gold: #f0a500;
+  --gold-light: #ffd166;
+  --cream: #fdf6e3;
+  --text-dark: #241f14;
+  --tan-border: #cbb98a;
+
+  --font-heading: 'IM Fell English SC', serif;
+  --font-body: 'Nunito', sans-serif;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background: var(--cream);
+  color: var(--text-dark);
+  line-height: 1.6;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-heading);
+  color: var(--navy);
+  margin: 0 0 0.4em;
+}
+
+a {
+  color: var(--teal);
+}
+
+.wrap {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ---- site header ---- */
+.site-header {
+  background: var(--navy);
+  color: var(--cream);
+  padding: 14px 0;
+}
+.site-header .wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.site-header img {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+}
+.site-header .brand-name {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  color: var(--gold-light);
+  flex: 1;
+}
+.site-header nav a {
+  color: var(--cream);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 14px;
+  margin-left: 18px;
+}
+.site-header nav a:hover {
+  color: var(--gold);
+}
+
+/* ---- buttons ---- */
+.btn {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  text-decoration: none;
+  padding: 10px 22px;
+  border-radius: 5px;
+  border: 1.5px solid var(--navy);
+  background: var(--gold);
+  color: var(--navy);
+  cursor: pointer;
+}
+.btn:hover {
+  background: var(--gold-light);
+}
+.btn-outline {
+  background: transparent;
+  color: var(--cream);
+  border-color: var(--gold);
+}
+
+/* ---- cards ---- */
+.card {
+  background: #fff;
+  border: 1px solid var(--tan-border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+/* ---- forms ---- */
+label {
+  display: block;
+  font-weight: 700;
+  font-size: 13px;
+  margin: 14px 0 4px;
+}
+input, textarea, select {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 14px;
+  padding: 9px 10px;
+  border: 1.3px solid var(--tan-border);
+  border-radius: 5px;
+  background: #fff;
+  color: var(--text-dark);
+}
+textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* ---- footer ---- */
+.site-footer {
+  background: var(--navy-deep);
+  color: var(--cream);
+  text-align: center;
+  padding: 24px 0;
+  margin-top: 48px;
+  font-size: 13px;
+}

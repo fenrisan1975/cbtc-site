@@ -1,0 +1,18 @@
+---
+const { categories, activeSlug } = Astro.props;
+---
+
+<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;">
+  <a
+    href="/directory"
+    class="btn"
+    style={`padding:6px 14px; font-size:13px; ${!activeSlug ? '' : 'background:transparent;'}`}
+  >All</a>
+  {categories.map((cat) => (
+    <a
+      href={`/directory?category=${cat.slug}`}
+      class="btn"
+      style={`padding:6px 14px; font-size:13px; ${activeSlug === cat.slug ? '' : 'background:transparent;'}`}
+    >{cat.name}</a>
+  ))}
+</div>

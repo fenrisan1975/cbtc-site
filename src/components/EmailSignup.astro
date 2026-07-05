@@ -1,0 +1,43 @@
+<form id="email-signup-form" style="display:flex; gap:8px; flex-wrap:wrap; max-width:420px;">
+  <input
+    type="email"
+    name="email"
+    placeholder="you@example.com"
+    required
+    style="flex:1; min-width:200px;"
+  />
+  <button type="submit" class="btn">Join the list</button>
+</form>
+<p id="email-signup-message" style="font-size:13px; margin-top:8px;"></p>
+
+<script>
+  const form = document.getElementById('email-signup-form');
+  const message = document.getElementById('email-signup-message');
+
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const email = new FormData(form).get('email');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    message.textContent = '';
+
+    try {
+      const res = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        message.textContent = "You're on the list!";
+        form.reset();
+      } else {
+        message.textContent = data.error || 'Something went wrong -- try again.';
+      }
+    } catch {
+      message.textContent = 'Something went wrong -- try again.';
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+</script>

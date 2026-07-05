@@ -1,0 +1,37 @@
+---
+const { business } = Astro.props;
+---
+
+<article class="card" style="margin-bottom:14px;">
+  <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px;">
+    <h3 style="margin-bottom:2px;">
+      <a href={`/directory/${business.slug}`} style="text-decoration:none;">{business.name}</a>
+    </h3>
+    <favorite-button
+      data-business-id={business.id}
+      data-count={business.favorite_count}
+    ></favorite-button>
+  </div>
+
+  {business.category_name && (
+    <div style="font-size:12px; font-weight:800; letter-spacing:0.5px; text-transform:uppercase; color:var(--teal); margin-bottom:6px;">
+      {business.category_name}
+    </div>
+  )}
+
+  {business.description && (
+    <p style="margin:0 0 6px; font-size:14px;">{business.description}</p>
+  )}
+
+  <div style="font-size:13px; color:#4a4230;">
+    {business.address && <div>{business.address}</div>}
+    {business.phone && <div>{business.phone}</div>}
+    {business.website && (
+      <div><a href={business.website} target="_blank" rel="noopener noreferrer">{business.website}</a></div>
+    )}
+  </div>
+</article>
+
+<script>
+  import './favorite-button.js';
+</script>

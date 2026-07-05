@@ -1,0 +1,38 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import BusinessCard from '../../components/BusinessCard.astro';
+import CategoryFilter from '../../components/CategoryFilter.astro';
+import { getApprovedBusinesses, getCategories } from '../../lib/businesses.js';
+
+// This page reads the database on every request (server output), so newly
+// approved businesses show up immediately without a rebuild.
+export const prerender = false;
+
+const categorySlug = Astro.url.searchParams.get('category') || undefined;
+const q = Astro.url.searchParams.get('q') || undefined;
+
+const [businesses, categories] = await Promise.all([
+  getApprovedBusinesses({ categorySlug, q }),
+  getCategories(),
+]);
+---
+
+<BaseLayout title="Directory — Constance Bay Trading Company">
+  <h1>Business Directory</h1>
+
+  <form method="get" style="margin-bottom:16px; display:flex; gap:8px;">
+    {categorySlug && <input type="hidden" name="category" value={categorySlug} />}
+    <input type="text" name="q" placeholder="Search businesses..." value={q || ''} style="flex:1;" />
+    <button type="submit" class="btn">Search</button>
+  </form>
+
+  <CategoryFilter categories={categories} activeSlug={categorySlug} />
+
+  {businesses.length === 0 && (
+    <p>No businesses found yet{categorySlug ? ' in this category' : ''}. Check back soon, or be the first to <a href="/submit">add yours</a>.</p>
+  )}
+
+  {businesses.map((business) => (
+    <BusinessCard business={business} />
+  ))}
+</BaseLayout>

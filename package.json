@@ -1,0 +1,17 @@
+{
+  "name": "cbtc-site",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "db:migrate": "node scripts/migrate.js"
+  },
+  "dependencies": {
+    "astro": "^4.16.0",
+    "@astrojs/netlify": "^5.5.0",
+    "@neondatabase/serverless": "^0.10.0"
+  }
+}

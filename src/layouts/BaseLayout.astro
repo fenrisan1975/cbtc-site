@@ -1,0 +1,42 @@
+---
+import '../styles/global.css';
+
+const { title = 'Constance Bay Trading Company' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{title}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Nunito:wght@400;700;800&display=swap"
+    rel="stylesheet"
+  />
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <img src="/crest.png" alt="Constance Bay Trading Company crest" />
+      <div class="brand-name">Constance Bay Trading Co.</div>
+      <nav>
+        <a href="/">Home</a>
+        <a href="/directory">Directory</a>
+        <a href="/submit">Add Your Business</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap" style="padding-top:32px; padding-bottom:32px;">
+    <slot />
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      &copy; {new Date().getFullYear()} Constance Bay Trading Company &middot; Constance Bay, Ontario
+    </div>
+  </footer>
+</body>
+</html>

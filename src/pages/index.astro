@@ -1,0 +1,27 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import EmailSignup from '../components/EmailSignup.astro';
+---
+
+<BaseLayout title="Constance Bay Trading Company">
+  <section style="text-align:center; padding:24px 0 40px;">
+    <img src="/crest.png" alt="Constance Bay Trading Company crest" style="width:140px; height:140px; object-fit:contain; margin-bottom:12px;" />
+    <h1 style="font-size:38px;">Constance Bay Trading Company</h1>
+    <p style="max-width:520px; margin:0 auto 20px; font-size:16px;">
+      A directory built to help you find, follow, and support the businesses
+      that make this village what it is.
+    </p>
+    <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+      <a href="/directory" class="btn">Browse the Directory</a>
+      <a href="/submit" class="btn" style="background:transparent; color:var(--navy);">Add Your Business</a>
+    </div>
+  </section>
+
+  <section style="text-align:center; padding:24px 0;">
+    <h2>Get the next update</h2>
+    <p style="margin-bottom:16px;">Be first to know as new businesses join and the loyalty program takes shape.</p>
+    <div style="display:flex; justify-content:center;">
+      <EmailSignup />
+    </div>
+  </section>
+</BaseLayout>
