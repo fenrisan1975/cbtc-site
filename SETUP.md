@@ -43,7 +43,7 @@ npm install
 If this fails on version numbers, it's likely because a package version I
 picked doesn't exist anymore -- open `package.json` and loosen/bump the
 version, or just delete the version number entirely and run
-`npm install astro @astrojs/netlify @neondatabase/serverless` fresh to get
+`npm install astro @astrojs/netlify @netlify/database` fresh to get
 whatever's current.
 
 Then:
@@ -53,9 +53,9 @@ npx astro dev
 ```
 
 This should start a local dev server (probably http://localhost:4321). Pages
-that hit the database (directory, submit) will error until you've set up
-Netlify DB and pointed `NETLIFY_DATABASE_URL` at it locally (step 3-4) --
-that's expected at this point.
+that hit the database (directory, submit) will error until you've linked
+Netlify DB (steps 3-4) and run `netlify dev` instead -- that's expected at
+this point.
 
 ## 3. Create a new Netlify site from this repo
 
@@ -72,31 +72,31 @@ it's a bit more involved since it changes how you push updates.)
 
 In the new site's dashboard: **Site settings > Database** (or search
 "Database" in site settings) > follow the prompt to provision a database.
-Netlify will automatically set the `NETLIFY_DATABASE_URL` environment
-variable for you -- you don't need to copy/paste a connection string
-yourself.
+The code talks to it through the `@netlify/database` package, which
+connects automatically for whichever environment it's running in
+(production, deploy preview, or local dev) -- there's no connection string
+to copy or paste anywhere.
 
 To run things locally against that same database, install the Netlify CLI
 (`npm install -g netlify-cli`), run `netlify link` inside this folder to
-connect it to the site, then `netlify dev` instead of `npx astro dev` --
-that pulls down the real environment variables (including the database
-URL) so local testing behaves like production.
+connect it to the site, then use `netlify dev` instead of `npx astro dev` --
+this starts an emulated local database that mirrors production.
 
 ## 5. Create the database tables
 
-With the database linked (previous step), run:
+The schema lives in `netlify/database/migrations/0001_init.sql`. Netlify
+applies it **automatically** on every production deploy and deploy preview
+-- there's nothing to run by hand once the code is pushed (step 8).
+
+For local testing with `netlify dev`, apply it once yourself:
 
 ```
-npm run db:migrate
+netlify database migrations apply
 ```
 
-This applies `db/schema.sql` -- creates the `businesses`, `categories`, and
-`favorites` tables, and seeds six starter categories (placeholders -- swap
-these for whatever the kids come up with in their "Map the Bay" mission).
-
-If that script gives you trouble, the fallback is to open the database
-directly (Netlify's dashboard links out to the Neon console) and paste the
-contents of `db/schema.sql` into its SQL editor.
+This creates the `businesses`, `categories`, and `favorites` tables, and
+seeds six starter categories (placeholders -- swap these for whatever the
+kids come up with in their "Map the Bay" mission).
 
 ## 6. Set up Mailchimp
 
@@ -113,27 +113,27 @@ contents of `db/schema.sql` into its SQL editor.
 ## 7. Approving business submissions
 
 There's no admin screen for this yet (v1) -- approving is a one-line SQL
-statement run against the database (via the Neon console, linked from
-Netlify's Database settings page):
+statement, run with the Netlify CLI (no separate console needed):
 
-```sql
-UPDATE businesses
-SET status = 'approved', approved_at = now()
-WHERE id = 123;   -- swap in the business's id
+```
+netlify database connect --query "UPDATE businesses SET status = 'approved', approved_at = now() WHERE id = 123;"
 ```
 
 To see what's waiting for review:
 
-```sql
-SELECT id, name, email, submitted_at FROM businesses WHERE status = 'pending' ORDER BY submitted_at;
 ```
+netlify database connect --query "SELECT id, name, email, submitted_at FROM businesses WHERE status = 'pending' ORDER BY submitted_at;"
+```
+
+Or run `netlify database connect` with no `--query` to drop into an
+interactive `psql` session and type SQL directly.
 
 ## 8. Deploy
 
-Once steps 1-6 are done, push to your git repo's main branch and Netlify
-will build and deploy automatically. Check the deploy log for errors --
-since this wasn't build-tested on my end, that first deploy is the real
-test.
+Once steps 1-6 are done, push to your git repo's main branch. Netlify will
+apply the migration in `netlify/database/migrations/` and then build and
+deploy automatically. Check the deploy log for errors -- since this wasn't
+build-tested on my end, that first deploy is the real test.
 
 ## What's not built yet
 

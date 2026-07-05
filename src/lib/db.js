@@ -1,21 +1,14 @@
-// Thin helper around the Neon serverless Postgres driver.
-// Netlify DB automatically sets NETLIFY_DATABASE_URL as an env var once
-// you enable it for this site (see SETUP.md) -- nothing to configure here.
-import { neon } from '@neondatabase/serverless';
+// Thin helper around Netlify's own database client.
+// @netlify/database automatically connects to the right database branch
+// for the current environment (production, deploy preview, or the local
+// emulated database under `netlify dev`) -- no connection string or env
+// var to configure by hand.
+import { getDatabase } from '@netlify/database';
 
 let cached;
 
 export function getDb() {
   if (cached) return cached;
-
-  const url = process.env.NETLIFY_DATABASE_URL;
-  if (!url) {
-    throw new Error(
-      'NETLIFY_DATABASE_URL is not set. Enable Netlify DB for this site ' +
-      '(Site settings > Database) -- see SETUP.md.'
-    );
-  }
-
-  cached = neon(url);
+  cached = getDatabase().sql;
   return cached;
 }
