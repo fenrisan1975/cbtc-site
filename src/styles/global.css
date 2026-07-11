@@ -52,8 +52,8 @@ a {
   gap: 14px;
 }
 .site-header img {
-  width: 42px;
   height: 42px;
+  width: auto;
   object-fit: contain;
 }
 .site-header .brand-name {
