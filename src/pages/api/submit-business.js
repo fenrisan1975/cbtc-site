@@ -4,8 +4,19 @@
 // it (see SETUP.md for the approval step).
 import { getDb } from '../../lib/db.js';
 import { slugify } from '../../lib/slugify.js';
+import { isSafeUrl } from '../../lib/url.js';
 
 export const prerender = false;
+
+// A fake "success" response for spam we silently drop -- returning ok:true
+// (instead of an error) means a bot doesn't learn it was blocked and try a
+// different approach. Nothing gets written to the database in this case.
+function fakeSuccessResponse() {
+  return new Response(JSON.stringify({ ok: true, slug: 'thanks' }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
 
 export async function POST({ request }) {
   let body;
@@ -14,6 +25,21 @@ export async function POST({ request }) {
   } catch {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400 });
   }
+
+  // --- spam checks -------------------------------------------------
+  // Honeypot: submit.astro renders a field that's hidden from real
+  // visitors (off-screen + aria-hidden). Bots that blindly fill in every
+  // field on a form will trip it.
+  const honeypot = (body.hp_url || '').trim();
+  if (honeypot) return fakeSuccessResponse();
+
+  // Timing trap: submit.astro embeds the server-render timestamp in a
+  // hidden field. A real visitor takes at least a few seconds to fill out
+  // the form; anything submitted near-instantly is almost certainly a
+  // script, not a person.
+  const renderedAt = Number(body.ts);
+  if (renderedAt && Date.now() - renderedAt < 3000) return fakeSuccessResponse();
+  // -------------------------------------------------------------------
 
   const name = (body.name || '').trim();
   const email = (body.email || '').trim();
@@ -31,6 +57,13 @@ export async function POST({ request }) {
   const website = (body.website || '').trim().slice(0, 300);
   const hours = (body.hours || '').trim().slice(0, 500);
   const categoryId = body.categoryId ? Number(body.categoryId) : null;
+
+  if (website && !isSafeUrl(website)) {
+    return new Response(
+      JSON.stringify({ error: 'Website must start with http:// or https://' }),
+      { status: 400 }
+    );
+  }
 
   const sql = getDb();
 

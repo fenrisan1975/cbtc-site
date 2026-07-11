@@ -5,6 +5,7 @@ import { getCategories } from '../lib/businesses.js';
 export const prerender = false;
 
 const categories = await getCategories();
+const renderedAt = Date.now();
 ---
 
 <BaseLayout title="Add Your Business — Constance Bay Trading Company">
@@ -15,6 +16,14 @@ const categories = await getCategories();
   </p>
 
   <form id="submit-form">
+    <!-- Spam trap: hidden from real visitors, invisible to screen readers.
+         Bots that auto-fill every field trip this; see submit-business.js. -->
+    <div aria-hidden="true" style="position:absolute; left:-9999px; top:-9999px;">
+      <label for="hp_url">Leave this field blank</label>
+      <input type="text" id="hp_url" name="hp_url" tabindex="-1" autocomplete="off" />
+    </div>
+    <input type="hidden" name="ts" value={renderedAt} />
+
     <label for="name">Business name *</label>
     <input type="text" id="name" name="name" required />
 
@@ -39,7 +48,14 @@ const categories = await getCategories();
     <input type="email" id="email" name="email" required />
 
     <label for="website">Website</label>
-    <input type="url" id="website" name="website" placeholder="https://" />
+    <input
+      type="url"
+      id="website"
+      name="website"
+      placeholder="https://"
+      pattern="https?://.+"
+      title="Include http:// or https:// at the start"
+    />
 
     <label for="hours">Hours</label>
     <input type="text" id="hours" name="hours" placeholder="e.g. Mon–Fri 9am–5pm" />

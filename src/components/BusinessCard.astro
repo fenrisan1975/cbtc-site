@@ -1,4 +1,5 @@
 ---
+import { isSafeUrl } from '../lib/url.js';
 const { business } = Astro.props;
 ---
 
@@ -26,7 +27,7 @@ const { business } = Astro.props;
   <div style="font-size:13px; color:#4a4230;">
     {business.address && <div>{business.address}</div>}
     {business.phone && <div>{business.phone}</div>}
-    {business.website && (
+    {business.website && isSafeUrl(business.website) && (
       <div><a href={business.website} target="_blank" rel="noopener noreferrer">{business.website}</a></div>
     )}
   </div>

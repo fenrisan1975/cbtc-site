@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getBusinessBySlug } from '../../lib/businesses.js';
+import { isSafeUrl } from '../../lib/url.js';
 
 export const prerender = false;
 
@@ -35,7 +36,7 @@ if (!business) {
     {business.address && <p><strong>Address:</strong> {business.address}</p>}
     {business.phone && <p><strong>Phone:</strong> {business.phone}</p>}
     {business.email && <p><strong>Email:</strong> {business.email}</p>}
-    {business.website && (
+    {business.website && isSafeUrl(business.website) && (
       <p><strong>Website:</strong> <a href={business.website} target="_blank" rel="noopener noreferrer">{business.website}</a></p>
     )}
     {business.hours && <p><strong>Hours:</strong> {business.hours}</p>}
