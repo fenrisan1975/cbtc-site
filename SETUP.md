@@ -112,8 +112,25 @@ kids come up with in their "Map the Bay" mission).
 
 ## 7. Approving business submissions
 
-There's no admin screen for this yet (v1) -- approving is a one-line SQL
-statement, run with the Netlify CLI (no separate console needed):
+There's now a password-protected admin page at `/admin` for this -- no more
+manual SQL needed.
+
+1. Pick a long, random password and add it as an environment variable in
+   Netlify: **Site settings > Environment variables** > `ADMIN_PASSWORD`.
+   (Also add it to your local `.env` if you want to test `/admin` with
+   `netlify dev`.)
+2. Visit `yoursite.com/admin/login`, enter the password.
+3. You'll land on `/admin`, which lists pending submissions with **Approve**
+   and **Reject** buttons. Tabs at the top switch between Pending / Approved
+   / Rejected / All.
+4. There's a **Log out** button on the dashboard; the session cookie also
+   expires after 7 days on its own.
+
+This is a single shared password (not per-user accounts) since there's only
+one admin for now -- see `src/lib/adminAuth.js` and `src/middleware.js` for
+how the session is protected.
+
+If you ever need to bypass the UI, the old direct-SQL approach still works:
 
 ```
 netlify database connect --query "UPDATE businesses SET status = 'approved', approved_at = now() WHERE id = 123;"
@@ -137,7 +154,6 @@ build-tested on my end, that first deploy is the real test.
 
 ## What's not built yet
 
-- No admin UI for approving businesses (direct SQL for now, see step 7)
 - No photo upload for business listings (`photo_url` column exists in the
   schema, but there's no upload form yet -- Netlify Blobs would be the
   natural fit when you want this)

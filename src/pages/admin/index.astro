@@ -1,0 +1,81 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getBusinessesByStatus } from '../../lib/businesses.js';
+
+export const prerender = false;
+
+const validStatuses = ['pending', 'approved', 'rejected', 'all'];
+const statusParam = Astro.url.searchParams.get('status') || 'pending';
+const status = validStatuses.includes(statusParam) ? statusParam : 'pending';
+
+const businesses = await getBusinessesByStatus(status);
+---
+
+<BaseLayout title="Admin — Constance Bay Trading Company">
+  <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap;">
+    <h1>Business Submissions</h1>
+    <form method="POST" action="/api/admin/logout">
+      <button type="submit" class="btn btn-outline" style="border-color:var(--navy); color:var(--navy);">Log out</button>
+    </form>
+  </div>
+
+  <nav style="margin-bottom:20px;">
+    {validStatuses.map((s) => (
+      <a
+        href={`/admin?status=${s}`}
+        style={`margin-right:16px; font-weight:800; text-transform:capitalize; ${status === s ? 'color:var(--navy); text-decoration:underline;' : 'color:var(--teal);'}`}
+      >
+        {s}
+      </a>
+    ))}
+  </nav>
+
+  {businesses.length === 0 && (
+    <p>No {status === 'all' ? '' : status} submissions.</p>
+  )}
+
+  {businesses.map((business) => (
+    <article class="card" style="margin-bottom:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap;">
+        <h3 style="margin-bottom:2px;">{business.name}</h3>
+        <span style="font-size:12px; font-weight:800; text-transform:uppercase; color:var(--teal);">
+          {business.status}
+        </span>
+      </div>
+
+      {business.category_name && (
+        <div style="font-size:12px; color:#4a4230; margin-bottom:6px;">{business.category_name}</div>
+      )}
+
+      {business.description && (
+        <p style="margin:0 0 6px; font-size:14px;">{business.description}</p>
+      )}
+
+      <div style="font-size:13px; color:#4a4230; margin-bottom:10px;">
+        {business.address && <div>{business.address}</div>}
+        {business.phone && <div>{business.phone}</div>}
+        {business.email && <div>Contact: {business.email}</div>}
+        {business.website && <div>{business.website}</div>}
+        {business.hours && <div>{business.hours}</div>}
+        <div>Submitted {new Date(business.submitted_at).toLocaleString()}</div>
+      </div>
+
+      <div style="display:flex; gap:8px;">
+        {business.status !== 'approved' && (
+          <form method="POST" action="/api/admin/approve">
+            <input type="hidden" name="id" value={business.id} />
+            <input type="hidden" name="status" value={status} />
+            <button type="submit" class="btn">Approve</button>
+          </form>
+        )}
+        {business.status !== 'rejected' && (
+          <form method="POST" action="/api/admin/reject">
+            <input type="hidden" name="id" value={business.id} />
+            <input type="hidden" name="status" value={status} />
+            <button type="submit" class="btn btn-outline" style="border-color:#a33; color:#a33; background:#fff;">Reject</button>
+          </form>
+        )}
+      </div>
+    </article>
+  ))}
+</BaseLayout>

@@ -1,0 +1,24 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { isAuthed } from '../../lib/adminAuth.js';
+
+export const prerender = false;
+
+if (isAuthed(Astro.cookies)) {
+  return Astro.redirect('/admin');
+}
+
+const error = Astro.url.searchParams.get('error');
+---
+
+<BaseLayout title="Admin Login — Constance Bay Trading Company">
+  <h1>Admin Login</h1>
+
+  {error && <p style="color:#a33; font-weight:700;">Wrong password. Try again.</p>}
+
+  <form method="POST" action="/api/admin/login" style="max-width:320px;">
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" required autofocus />
+    <button type="submit" class="btn" style="margin-top:16px;">Log in</button>
+  </form>
+</BaseLayout>

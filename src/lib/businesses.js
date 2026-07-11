@@ -66,3 +66,27 @@ export async function getBusinessBySlug(slug) {
   `;
   return rows[0] || null;
 }
+
+// Admin-only: fetch businesses by moderation status ('pending', 'approved',
+// 'rejected', or 'all'), including unapproved ones. Used by /admin, which is
+// protected by src/middleware.js -- never call this from a public page.
+export async function getBusinessesByStatus(status) {
+  const sql = getDb();
+
+  if (status === 'all') {
+    return sql`
+      SELECT b.*, c.name AS category_name, c.slug AS category_slug
+      FROM businesses b
+      LEFT JOIN categories c ON c.id = b.category_id
+      ORDER BY b.submitted_at DESC
+    `;
+  }
+
+  return sql`
+    SELECT b.*, c.name AS category_name, c.slug AS category_slug
+    FROM businesses b
+    LEFT JOIN categories c ON c.id = b.category_id
+    WHERE b.status = ${status}
+    ORDER BY b.submitted_at DESC
+  `;
+}
