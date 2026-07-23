@@ -1,16 +1,26 @@
 ---
-const { categories, activeSlug } = Astro.props;
+// tagSlug is passed through so switching category doesn't drop an active
+// tag filter -- see TagFilter.astro for the mirror-image behaviour.
+const { categories, activeSlug, tagSlug } = Astro.props;
+
+function hrefFor(categorySlug) {
+  const params = new URLSearchParams();
+  if (categorySlug) params.set('category', categorySlug);
+  if (tagSlug) params.set('tag', tagSlug);
+  const qs = params.toString();
+  return `/directory${qs ? `?${qs}` : ''}`;
+}
 ---
 
-<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;">
+<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
   <a
-    href="/directory"
+    href={hrefFor(undefined)}
     class="btn"
     style={`padding:6px 14px; font-size:13px; ${!activeSlug ? '' : 'background:transparent;'}`}
   >All</a>
   {categories.map((cat) => (
     <a
-      href={`/directory?category=${cat.slug}`}
+      href={hrefFor(cat.slug)}
       class="btn"
       style={`padding:6px 14px; font-size:13px; ${activeSlug === cat.slug ? '' : 'background:transparent;'}`}
     >{cat.name}</a>

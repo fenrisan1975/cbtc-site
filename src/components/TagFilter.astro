@@ -1,0 +1,32 @@
+---
+// Same single-select chip pattern as CategoryFilter, but for tags. Preserves
+// the active category (and drops back to "All" for tags) so category + tag
+// filters can be combined via the URL, e.g. ?category=services&tag=home-trades.
+const { tags, activeSlug, categorySlug } = Astro.props;
+
+function hrefFor(tagSlug) {
+  const params = new URLSearchParams();
+  if (categorySlug) params.set('category', categorySlug);
+  if (tagSlug) params.set('tag', tagSlug);
+  const qs = params.toString();
+  return `/directory${qs ? `?${qs}` : ''}`;
+}
+---
+
+{tags.length > 0 && (
+  <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px;">
+    <span style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:#4a4230; align-self:center; margin-right:4px;">Tags:</span>
+    <a
+      href={hrefFor(undefined)}
+      class="btn"
+      style={`padding:4px 12px; font-size:12px; ${!activeSlug ? '' : 'background:transparent;'}`}
+    >All</a>
+    {tags.map((tag) => (
+      <a
+        href={hrefFor(tag.slug)}
+        class="btn"
+        style={`padding:4px 12px; font-size:12px; ${activeSlug === tag.slug ? '' : 'background:transparent;'}`}
+      >{tag.name}</a>
+    ))}
+  </div>
+)}

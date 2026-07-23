@@ -2,18 +2,21 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import BusinessCard from '../../components/BusinessCard.astro';
 import CategoryFilter from '../../components/CategoryFilter.astro';
-import { getApprovedBusinesses, getCategories } from '../../lib/businesses.js';
+import TagFilter from '../../components/TagFilter.astro';
+import { getApprovedBusinesses, getCategories, getTags } from '../../lib/businesses.js';
 
 // This page reads the database on every request (server output), so newly
 // approved businesses show up immediately without a rebuild.
 export const prerender = false;
 
 const categorySlug = Astro.url.searchParams.get('category') || undefined;
+const tagSlug = Astro.url.searchParams.get('tag') || undefined;
 const q = Astro.url.searchParams.get('q') || undefined;
 
-const [businesses, categories] = await Promise.all([
-  getApprovedBusinesses({ categorySlug, q }),
+const [businesses, categories, tags] = await Promise.all([
+  getApprovedBusinesses({ categorySlug, tagSlug, q }),
   getCategories(),
+  getTags(),
 ]);
 ---
 
@@ -22,14 +25,16 @@ const [businesses, categories] = await Promise.all([
 
   <form method="get" style="margin-bottom:16px; display:flex; gap:8px;">
     {categorySlug && <input type="hidden" name="category" value={categorySlug} />}
+    {tagSlug && <input type="hidden" name="tag" value={tagSlug} />}
     <input type="text" name="q" placeholder="Search businesses..." value={q || ''} style="flex:1;" />
     <button type="submit" class="btn">Search</button>
   </form>
 
-  <CategoryFilter categories={categories} activeSlug={categorySlug} />
+  <CategoryFilter categories={categories} activeSlug={categorySlug} tagSlug={tagSlug} />
+  <TagFilter tags={tags} activeSlug={tagSlug} categorySlug={categorySlug} />
 
   {businesses.length === 0 && (
-    <p>No businesses found yet{categorySlug ? ' in this category' : ''}. Check back soon, or be the first to <a href="/submit">add yours</a>.</p>
+    <p>No businesses found yet{categorySlug || tagSlug ? ' matching this filter' : ''}. Check back soon, or be the first to <a href="/submit">add yours</a>.</p>
   )}
 
   {businesses.map((business) => (

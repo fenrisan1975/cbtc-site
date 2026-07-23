@@ -1,6 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { getBusinessesByStatus } from '../../lib/businesses.js';
+import { getBusinessesByStatus, getTags } from '../../lib/businesses.js';
 
 export const prerender = false;
 
@@ -8,7 +8,10 @@ const validStatuses = ['pending', 'approved', 'rejected', 'all'];
 const statusParam = Astro.url.searchParams.get('status') || 'pending';
 const status = validStatuses.includes(statusParam) ? statusParam : 'pending';
 
-const businesses = await getBusinessesByStatus(status);
+const [businesses, allTags] = await Promise.all([
+  getBusinessesByStatus(status),
+  getTags(),
+]);
 ---
 
 <BaseLayout title="Admin — Constance Bay Trading Company">
@@ -60,7 +63,7 @@ const businesses = await getBusinessesByStatus(status);
         <div>Submitted {new Date(business.submitted_at).toLocaleString()}</div>
       </div>
 
-      <div style="display:flex; gap:8px;">
+      <div style="display:flex; gap:8px; margin-bottom:14px;">
         {business.status !== 'approved' && (
           <form method="POST" action="/api/admin/approve">
             <input type="hidden" name="id" value={business.id} />
@@ -76,6 +79,24 @@ const businesses = await getBusinessesByStatus(status);
           </form>
         )}
       </div>
+
+      <form method="POST" action="/api/admin/set-tags" style="border-top:1px solid #e2d9bf; padding-top:10px;">
+        <input type="hidden" name="id" value={business.id} />
+        <input type="hidden" name="status" value={status} />
+        <div style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:#4a4230; margin-bottom:6px;">Tags</div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px 14px; margin-bottom:8px;">
+          {allTags.map((tag) => {
+            const checked = business.tags?.some((t) => t.id === tag.id);
+            return (
+              <label style="font-weight:400; font-size:13px; display:flex; align-items:center; gap:5px;">
+                <input type="checkbox" name="tags" value={tag.id} checked={checked} />
+                {tag.name}
+              </label>
+            );
+          })}
+        </div>
+        <button type="submit" class="btn btn-outline" style="border-color:var(--navy); color:var(--navy); padding:5px 12px; font-size:12px;">Save tags</button>
+      </form>
     </article>
   ))}
 </BaseLayout>

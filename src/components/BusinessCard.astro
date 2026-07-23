@@ -20,6 +20,17 @@ const { business } = Astro.props;
     </div>
   )}
 
+  {business.tags && business.tags.length > 0 && (
+    <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px;">
+      {business.tags.map((tag) => (
+        <a
+          href={`/directory?tag=${tag.slug}`}
+          style="font-size:11px; padding:2px 8px; border-radius:999px; background:#f0ead6; color:#4a4230; text-decoration:none;"
+        >{tag.name}</a>
+      ))}
+    </div>
+  )}
+
   {business.description && (
     <p style="margin:0 0 6px; font-size:14px;">{business.description}</p>
   )}

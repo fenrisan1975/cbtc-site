@@ -25,8 +25,19 @@ if (!business) {
   </div>
 
   {business.category_name && (
-    <div style="font-size:13px; font-weight:800; letter-spacing:0.5px; text-transform:uppercase; color:var(--teal); margin-bottom:14px;">
+    <div style="font-size:13px; font-weight:800; letter-spacing:0.5px; text-transform:uppercase; color:var(--teal); margin-bottom:8px;">
       {business.category_name}
+    </div>
+  )}
+
+  {business.tags && business.tags.length > 0 && (
+    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px;">
+      {business.tags.map((tag) => (
+        <a
+          href={`/directory?tag=${tag.slug}`}
+          style="font-size:12px; padding:3px 10px; border-radius:999px; background:#f0ead6; color:#4a4230; text-decoration:none;"
+        >{tag.name}</a>
+      ))}
     </div>
   )}
 

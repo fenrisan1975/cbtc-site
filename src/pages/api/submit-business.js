@@ -5,6 +5,7 @@
 import { getDb } from '../../lib/db.js';
 import { slugify } from '../../lib/slugify.js';
 import { isSafeUrl } from '../../lib/url.js';
+import { setBusinessTags } from '../../lib/businesses.js';
 
 export const prerender = false;
 
@@ -57,6 +58,11 @@ export async function POST({ request }) {
   const website = (body.website || '').trim().slice(0, 300);
   const hours = (body.hours || '').trim().slice(0, 500);
   const categoryId = body.categoryId ? Number(body.categoryId) : null;
+  // Cap at 5 -- the form suggests up to 3, but don't hard-fail a legit
+  // submission that checked a few extra boxes.
+  const tagIds = Array.isArray(body.tags)
+    ? body.tags.map(Number).filter((n) => Number.isInteger(n) && n > 0).slice(0, 5)
+    : [];
 
   if (website && !isSafeUrl(website)) {
     return new Response(
@@ -79,12 +85,17 @@ export async function POST({ request }) {
     slug = `${baseSlug}-${suffix}`;
   }
 
-  await sql`
+  const inserted = await sql`
     INSERT INTO businesses
       (name, slug, category_id, description, address, phone, email, website, hours, status)
     VALUES
       (${name}, ${slug}, ${categoryId}, ${description}, ${address}, ${phone}, ${email}, ${website}, ${hours}, 'pending')
+    RETURNING id
   `;
+
+  if (tagIds.length > 0) {
+    await setBusinessTags(inserted[0].id, tagIds);
+  }
 
   return new Response(JSON.stringify({ ok: true, slug }), {
     status: 200,
