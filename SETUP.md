@@ -219,23 +219,33 @@ geocoder. If an address is vague or can't be found, the listing just doesn't
 get a pin — it still shows normally in the list below the map.
 
 **One-time backfill for your existing listings** (they predate this
-feature, so none of them have coordinates yet):
+feature, so none of them have coordinates yet). This needs to write to
+your real **production** database — `netlify dev` / `netlify dev:exec`
+won't work for this step, because those spin up a separate, empty local
+Postgres instance (same schema/engine as production, but none of your real
+listings live there). So instead this script takes the production
+connection string explicitly:
 
-```
-netlify link          # once, if you haven't already
-netlify dev:exec node scripts/geocode-existing.js
-```
+1. Make sure you've deployed the code from this feature first (step 9
+   below) — migration `0005` needs to have run in production before this
+   script has `latitude`/`longitude` columns to write to.
+2. Get your production connection string:
+   ```
+   netlify link          # once, if you haven't already
+   netlify database status --branch production --show-credentials --json
+   ```
+   Copy the `connection_string` value from the output.
+3. Run the backfill, passing that connection string as an argument (keep
+   the quotes around it):
+   ```
+   node scripts/geocode-existing.js "<connection_string>"
+   ```
 
 This walks through every business missing a pin, looks up its address, and
 saves the coordinates — deliberately slow (about 1 per second, to stay
 within Nominatim's free-tier usage limits), so ~32 listings takes under a
 minute. It prints which ones succeeded and which couldn't be found (usually
 a vague or incomplete address — fix it in `/admin` and re-run).
-
-Also run `netlify database migrations apply` locally first if you're
-testing with `netlify dev` (adds the `latitude`/`longitude` columns) — same
-as every other migration, this applies automatically in production on your
-next deploy.
 
 ## 9. Deploy
 

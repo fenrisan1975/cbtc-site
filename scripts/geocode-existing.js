@@ -3,9 +3,22 @@
 // New submissions geocode themselves automatically going forward -- see
 // src/pages/api/submit-business.js -- this script is only for the backlog.
 //
-// Run locally against the REAL database (not `astro dev`'s missing DB):
-//   netlify link          (once, if you haven't already)
-//   netlify dev:exec node scripts/geocode-existing.js
+// IMPORTANT: this must run against your real PRODUCTION database, not the
+// local emulated one `netlify dev` / `netlify dev:exec` spins up (that's a
+// separate, empty local Postgres instance -- same engine/schema as prod,
+// but none of your real 32 listings live there). So instead of relying on
+// auto-detected env vars, this script takes the production connection
+// string explicitly:
+//
+//   netlify link                                  (once, if you haven't)
+//   netlify database status --branch production --show-credentials --json
+//
+// Copy the "connection_string" value from that output, then run:
+//
+//   node scripts/geocode-existing.js "<connection_string>"
+//
+// (Keep the quotes -- the connection string contains characters your shell
+// would otherwise try to interpret.)
 //
 // Deliberately slow: Nominatim's usage policy caps requests at ~1/second
 // (https://operations.osmfoundation.org/policies/nominatim/), so this
@@ -15,13 +28,25 @@
 import { getDatabase } from '@netlify/database';
 import { geocodeAddress } from '../src/lib/geocode.js';
 
-const sql = getDatabase().sql;
-
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function main() {
+  const connectionString = process.argv[2];
+  if (!connectionString) {
+    console.error(
+      'Missing connection string.\n\n' +
+      'Run:\n' +
+      '  netlify database status --branch production --show-credentials --json\n' +
+      'copy the "connection_string" value, then:\n' +
+      '  node scripts/geocode-existing.js "<connection_string>"\n'
+    );
+    process.exit(1);
+  }
+
+  const sql = getDatabase({ connectionString }).sql;
+
   const rows = await sql`
     SELECT id, name, address
     FROM businesses
