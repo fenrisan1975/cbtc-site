@@ -7,6 +7,7 @@ import { slugify } from '../../lib/slugify.js';
 import { isSafeUrl } from '../../lib/url.js';
 import { setBusinessTags } from '../../lib/businesses.js';
 import { notifyNewBusiness } from '../../lib/notify.js';
+import { geocodeAddress } from '../../lib/geocode.js';
 
 export const prerender = false;
 
@@ -96,6 +97,19 @@ export async function POST({ request }) {
 
   if (tagIds.length > 0) {
     await setBusinessTags(inserted[0].id, tagIds);
+  }
+
+  // Best-effort geocode so the new listing can show up as a pin on the
+  // directory map. Never lets a geocoding hiccup (Nominatim down, address
+  // not found, etc.) fail the submission -- geocode.js already swallows
+  // errors internally, but a missing/unrecognizable address just means the
+  // listing shows in the list view without a pin until it's fixed.
+  const coords = await geocodeAddress(address);
+  if (coords) {
+    await sql`
+      UPDATE businesses SET latitude = ${coords.latitude}, longitude = ${coords.longitude}
+      WHERE id = ${inserted[0].id}
+    `;
   }
 
   // Notify (James, Amelia, Andrew) that a new listing came in. Never lets a

@@ -205,6 +205,38 @@ it's still `pending`, before you've approved it) using
 If these env vars aren't set, submissions still work fine -- the site just
 skips sending the notification (see `src/lib/notify.js`).
 
+## 8.2 Map on the directory page
+
+The `/directory` page now shows a Leaflet + OpenStreetMap map with a pin for
+every business that has coordinates. No API key or account needed — it's
+free (Leaflet is a JS library loaded from a CDN, and the map tiles come from
+OpenStreetMap).
+
+New submissions get geocoded automatically from their address (see
+`src/lib/geocode.js`, called from `src/pages/api/submit-business.js`) using
+[Nominatim](https://nominatim.openstreetmap.org), OpenStreetMap's free
+geocoder. If an address is vague or can't be found, the listing just doesn't
+get a pin — it still shows normally in the list below the map.
+
+**One-time backfill for your existing listings** (they predate this
+feature, so none of them have coordinates yet):
+
+```
+netlify link          # once, if you haven't already
+netlify dev:exec node scripts/geocode-existing.js
+```
+
+This walks through every business missing a pin, looks up its address, and
+saves the coordinates — deliberately slow (about 1 per second, to stay
+within Nominatim's free-tier usage limits), so ~32 listings takes under a
+minute. It prints which ones succeeded and which couldn't be found (usually
+a vague or incomplete address — fix it in `/admin` and re-run).
+
+Also run `netlify database migrations apply` locally first if you're
+testing with `netlify dev` (adds the `latitude`/`longitude` columns) — same
+as every other migration, this applies automatically in production on your
+next deploy.
+
 ## 9. Deploy
 
 Once steps 1-6 are done, push to your git repo's main branch. Netlify will

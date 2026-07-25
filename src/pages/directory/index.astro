@@ -18,9 +18,37 @@ const [businesses, categories, tags] = await Promise.all([
   getCategories(),
   getTags(),
 ]);
+
+// Only businesses with both coordinates get a pin -- older listings
+// submitted before the map feature (or geocoded from a vague address) may
+// not have coordinates yet. See scripts/geocode-existing.js for backfilling.
+const mappable = businesses.filter(
+  (b) => typeof b.latitude === 'number' && typeof b.longitude === 'number'
+);
+
+// Rough center of Constance Bay, Ontario -- used when there are no pins yet
+// so the map doesn't default to somewhere unrelated (e.g. null island).
+const FALLBACK_CENTER = [45.3557, -76.1523];
+
+const mapPoints = mappable.map((b) => ({
+  lat: b.latitude,
+  lng: b.longitude,
+  name: b.name,
+  slug: b.slug,
+  category: b.category_name || null,
+}));
 ---
 
 <BaseLayout title="Directory — Constance Bay Trading Company">
+  <Fragment slot="head">
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+  </Fragment>
+
   <h1>Business Directory</h1>
 
   <form method="get" style="margin-bottom:16px; display:flex; gap:8px;">
@@ -33,6 +61,16 @@ const [businesses, categories, tags] = await Promise.all([
   <CategoryFilter categories={categories} activeSlug={categorySlug} tagSlug={tagSlug} />
   <TagFilter tags={tags} activeSlug={tagSlug} categorySlug={categorySlug} />
 
+  {mappable.length > 0 ? (
+    <div id="directory-map" style="height:340px; border-radius:8px; border:1px solid var(--tan-border); margin:16px 0;"></div>
+  ) : (
+    businesses.length > 0 && (
+      <p style="font-size:13px; color:#4a4230; font-style:italic;">
+        Map view coming soon for these listings — locations haven't been mapped yet.
+      </p>
+    )
+  )}
+
   {businesses.length === 0 && (
     <p>No businesses found yet{categorySlug || tagSlug ? ' matching this filter' : ''}. Check back soon, or be the first to <a href="/submit">add yours</a>.</p>
   )}
@@ -40,4 +78,40 @@ const [businesses, categories, tags] = await Promise.all([
   {businesses.map((business) => (
     <BusinessCard business={business} />
   ))}
+
+  {mappable.length > 0 && (
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""></script>
+  <script type="module" define:vars={{ mapPoints, fallbackCenter: FALLBACK_CENTER }}>
+    const map = L.map('directory-map');
+
+    if (mapPoints.length > 0) {
+      const bounds = L.latLngBounds(mapPoints.map((p) => [p.lat, p.lng]));
+      map.fitBounds(bounds, { padding: [24, 24], maxZoom: 15 });
+    } else {
+      map.setView(fallbackCenter, 13);
+    }
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(map);
+
+    // Business names/categories are admin-approved, but escape them anyway
+    // before building popup HTML -- cheap insurance against a stray "<" or
+    // "&" in a submitted name breaking the popup.
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    for (const point of mapPoints) {
+      const popupHtml = `<strong><a href="/directory/${encodeURIComponent(point.slug)}">${escapeHtml(point.name)}</a></strong>` +
+        (point.category ? `<br><span style="font-size:12px;color:#4a4230;">${escapeHtml(point.category)}</span>` : '');
+      L.marker([point.lat, point.lng]).addTo(map).bindPopup(popupHtml);
+    }
+  </script>
+  )}
 </BaseLayout>
