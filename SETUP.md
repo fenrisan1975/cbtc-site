@@ -151,25 +151,33 @@ James and Amelia get the same `/admin` password as you (step 7) -- there's
 no per-kid account system, so just share it with them directly. They'll be
 able to approve/reject listings and edit tags, same as you.
 
-For email addresses at `@constancebaytrading.com` that forward to your
-existing inbox (no new mailboxes to manage):
+`andrew@constancebaytrading.com` already exists as a real mailbox on
+**Microsoft 365 from GoDaddy** (not Cloudflare Email Routing -- using
+Cloudflare would conflict with the MX records GoDaddy/Microsoft already set
+up for the domain, so don't enable Email Routing there).
 
-1. In the Cloudflare dashboard, pick the `constancebaytrading.com` zone >
-   **Email > Email Routing**. Enable it if it isn't already (Cloudflare adds
-   the required MX/TXT records for you automatically -- this won't touch the
-   CNAME records already pointing the site at Netlify).
-2. Under **Destination addresses**, add and verify `fenrisan@gmail.com` (a
-   confirmation email gets sent there -- click the link) if it isn't listed
-   already.
-3. Under **Custom addresses**, create three routing rules, each forwarding
-   to that verified `fenrisan@gmail.com` destination:
+The free option -- **email aliases on your existing mailbox** -- gets James
+and Amelia their own address with mail landing in your inbox, no extra
+Microsoft 365 seats to pay for:
+
+1. Go to your GoDaddy account > **Email & Office** > manage the
+   `andrew@constancebaytrading.com` mailbox (or go directly to
+   admin.microsoft.com if GoDaddy hands you off there).
+2. Find that mailbox's **email aliases** setting (in the Microsoft 365 admin
+   center: Users > Active users > pick the mailbox > Manage username and
+   email > + Add an alias). Add:
    - `james@constancebaytrading.com`
    - `amelia@constancebaytrading.com`
-   - `andrew@constancebaytrading.com`
-4. That's it -- mail sent to any of those three addresses (including the
-   notification emails from step 8.1 below) lands in your existing Gmail.
-   When James or Amelia are ready for their own real inbox, just change that
-   custom address's destination in Cloudflare -- no code changes needed.
+3. No DNS changes needed for this part -- the domain's already verified on
+   this Microsoft 365 tenant. Mail sent to either alias (including the
+   notification emails from step 8.1 below) lands directly in your existing
+   inbox, same as mail sent to `andrew@`.
+
+If you'd rather James and Amelia have a real separate inbox they log into
+themselves (own password, own Outlook/webmail), that means buying two more
+Microsoft 365 seats through GoDaddy instead of aliases -- worth doing later
+if they want to actually reply to businesses themselves, but aliases are the
+free/simple starting point.
 
 ### 8.1 New-business notification email
 
@@ -179,11 +187,11 @@ it's still `pending`, before you've approved it) using
 
 1. Sign up at resend.com (free tier: 3,000 emails/month, plenty here).
 2. **Domains > Add Domain** > enter `constancebaytrading.com` > Resend shows
-   you 2-3 DNS records (TXT/DKIM) to add. Add those in the same Cloudflare
-   DNS zone as the site's existing records (step 8 above uses MX/TXT records
-   too, but for *receiving* mail -- these new ones are for *sending*, and
-   don't conflict). Wait for Resend to show the domain as verified
-   (usually a few minutes).
+   you 2-3 DNS records (TXT/DKIM) to add. Add those in the Cloudflare DNS
+   zone that already holds the site's CNAME records -- these are separate
+   TXT records for *sending* mail and won't touch the existing MX records
+   GoDaddy/Microsoft 365 uses for *receiving* mail at `andrew@` (step 8).
+   Wait for Resend to show the domain as verified (usually a few minutes).
 3. **API Keys > Create API Key** > copy it.
 4. In Netlify: **Site settings > Environment variables**, add:
    - `RESEND_API_KEY` -- the key from step 3
