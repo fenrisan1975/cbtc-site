@@ -33,6 +33,20 @@ const [businesses, allTags] = await Promise.all([
     ))}
   </nav>
 
+  <div class="card" style="margin-bottom:20px;">
+    <div style="font-weight:800; margin-bottom:6px;">Map pins backfill</div>
+    <p style="font-size:13px; color:#4a4230; margin:0 0 10px;">
+      One-time cleanup: looks up map coordinates for any approved business
+      that doesn't have one yet (older listings from before the directory
+      map existed). Safe to run more than once — it skips anything already
+      geocoded, and takes about a second per business.
+    </p>
+    <button id="geocode-backfill-btn" type="button" class="btn btn-outline" style="border-color:var(--navy); color:var(--navy);">
+      Backfill map pins
+    </button>
+    <div id="geocode-backfill-log" style="margin-top:10px; font-size:12px; font-family:monospace; white-space:pre-wrap;"></div>
+  </div>
+
   {businesses.length === 0 && (
     <p>No {status === 'all' ? '' : status} submissions.</p>
   )}
@@ -99,4 +113,61 @@ const [businesses, allTags] = await Promise.all([
       </form>
     </article>
   ))}
+
+  <script>
+    // Drives the map-pins backfill one business at a time, from the
+    // browser, waiting ~1.1s between calls to stay under Nominatim's free
+    // usage limit (~1 request/sec) -- see /api/admin/geocode-next.js.
+    function sleep(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    const btn = document.getElementById('geocode-backfill-btn');
+    const log = document.getElementById('geocode-backfill-log');
+
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      btn.textContent = 'Backfilling…';
+      log.textContent = '';
+
+      const excludeIds = [];
+      let succeeded = 0;
+      let failed = 0;
+
+      while (true) {
+        let data;
+        try {
+          const res = await fetch('/api/admin/geocode-next', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ excludeIds }),
+          });
+          data = await res.json();
+        } catch (err) {
+          log.textContent += `\nNetwork error, stopping: ${err.message}`;
+          break;
+        }
+
+        if (data.done) {
+          log.textContent += `\nDone. ${succeeded} geocoded, ${failed} couldn't be found.`;
+          break;
+        }
+
+        excludeIds.push(data.business.id);
+        if (data.geocoded) {
+          succeeded += 1;
+          log.textContent += `\n✓ ${data.business.name} — ${data.business.address}`;
+        } else {
+          failed += 1;
+          log.textContent += `\n✗ ${data.business.name} — ${data.business.address} (couldn't be found, fix the address and re-run)`;
+        }
+        log.scrollTop = log.scrollHeight;
+
+        await sleep(1100);
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Backfill map pins';
+    });
+  </script>
 </BaseLayout>

@@ -219,33 +219,31 @@ geocoder. If an address is vague or can't be found, the listing just doesn't
 get a pin — it still shows normally in the list below the map.
 
 **One-time backfill for your existing listings** (they predate this
-feature, so none of them have coordinates yet). This needs to write to
-your real **production** database — `netlify dev` / `netlify dev:exec`
-won't work for this step, because those spin up a separate, empty local
-Postgres instance (same schema/engine as production, but none of your real
-listings live there). So instead this script takes the production
-connection string explicitly:
+feature, so none of them have coordinates yet). Do this after you've
+deployed (step 9 below), so migration `0005` has already added the
+`latitude`/`longitude` columns in production.
 
-1. Make sure you've deployed the code from this feature first (step 9
-   below) — migration `0005` needs to have run in production before this
-   script has `latitude`/`longitude` columns to write to.
-2. Get your production connection string:
-   ```
-   netlify link          # once, if you haven't already
-   netlify database status --branch production --show-credentials --json
-   ```
-   Copy the `connection_string` value from the output.
-3. Run the backfill, passing that connection string as an argument (keep
-   the quotes around it):
-   ```
-   node scripts/geocode-existing.js "<connection_string>"
-   ```
+Log in to `/admin` — there's a **"Backfill map pins"** button near the top
+of the page. Click it and leave the tab open; it geocodes one business at a
+time (about a second each, so ~30 listings takes under a minute) and prints
+a running log of what succeeded and what couldn't be found. Safe to click
+more than once — it always skips anything already geocoded.
 
-This walks through every business missing a pin, looks up its address, and
-saves the coordinates — deliberately slow (about 1 per second, to stay
-within Nominatim's free-tier usage limits), so ~32 listings takes under a
-minute. It prints which ones succeeded and which couldn't be found (usually
-a vague or incomplete address — fix it in `/admin` and re-run).
+(This runs through the site itself rather than a local script, because
+copying the production database's connection string via the Netlify CLI
+only gives **read-only** access unless your Netlify account is the Team
+Owner — see Netlify's [database access control
+docs](https://docs.netlify.com/build/data-and-storage/netlify-database/access-control/).
+Running it through `/admin` sidesteps that: it uses the same always-writable
+connection the site's own submit/approve code already uses.)
+
+There's also a standalone `scripts/geocode-existing.js` for the same job if
+you'd rather run it from a terminal — but it needs a **read-write**
+production connection string, which the CLI (`netlify database status
+--branch production --show-credentials`) only gives you if your Netlify
+account is the Team Owner on this site. If you get a "permission denied for
+table businesses" error running it, that's why — use the `/admin` button
+instead.
 
 ## 9. Deploy
 
