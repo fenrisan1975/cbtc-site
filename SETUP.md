@@ -145,7 +145,59 @@ netlify database connect --query "SELECT id, name, email, submitted_at FROM busi
 Or run `netlify database connect` with no `--query` to drop into an
 interactive `psql` session and type SQL directly.
 
-## 8. Deploy
+## 8. Kids' access: admin login + email addresses
+
+James and Amelia get the same `/admin` password as you (step 7) -- there's
+no per-kid account system, so just share it with them directly. They'll be
+able to approve/reject listings and edit tags, same as you.
+
+For email addresses at `@constancebaytrading.com` that forward to your
+existing inbox (no new mailboxes to manage):
+
+1. In the Cloudflare dashboard, pick the `constancebaytrading.com` zone >
+   **Email > Email Routing**. Enable it if it isn't already (Cloudflare adds
+   the required MX/TXT records for you automatically -- this won't touch the
+   CNAME records already pointing the site at Netlify).
+2. Under **Destination addresses**, add and verify `fenrisan@gmail.com` (a
+   confirmation email gets sent there -- click the link) if it isn't listed
+   already.
+3. Under **Custom addresses**, create three routing rules, each forwarding
+   to that verified `fenrisan@gmail.com` destination:
+   - `james@constancebaytrading.com`
+   - `amelia@constancebaytrading.com`
+   - `andrew@constancebaytrading.com`
+4. That's it -- mail sent to any of those three addresses (including the
+   notification emails from step 8.1 below) lands in your existing Gmail.
+   When James or Amelia are ready for their own real inbox, just change that
+   custom address's destination in Cloudflare -- no code changes needed.
+
+### 8.1 New-business notification email
+
+The site emails `NOTIFY_EMAILS` the moment someone submits a listing (while
+it's still `pending`, before you've approved it) using
+[Resend](https://resend.com) to send the mail.
+
+1. Sign up at resend.com (free tier: 3,000 emails/month, plenty here).
+2. **Domains > Add Domain** > enter `constancebaytrading.com` > Resend shows
+   you 2-3 DNS records (TXT/DKIM) to add. Add those in the same Cloudflare
+   DNS zone as the site's existing records (step 8 above uses MX/TXT records
+   too, but for *receiving* mail -- these new ones are for *sending*, and
+   don't conflict). Wait for Resend to show the domain as verified
+   (usually a few minutes).
+3. **API Keys > Create API Key** > copy it.
+4. In Netlify: **Site settings > Environment variables**, add:
+   - `RESEND_API_KEY` -- the key from step 3
+   - `RESEND_FROM_EMAIL` -- e.g. `notify@constancebaytrading.com` (any
+     address on the verified domain works, doesn't need to be a real
+     mailbox)
+   - `NOTIFY_EMAILS` -- `james@constancebaytrading.com,amelia@constancebaytrading.com,andrew@constancebaytrading.com`
+5. Redeploy (or trigger a deploy) so the new env vars take effect. Submit a
+   test listing through `/submit` and confirm the email arrives.
+
+If these env vars aren't set, submissions still work fine -- the site just
+skips sending the notification (see `src/lib/notify.js`).
+
+## 9. Deploy
 
 Once steps 1-6 are done, push to your git repo's main branch. Netlify will
 apply the migration in `netlify/database/migrations/` and then build and

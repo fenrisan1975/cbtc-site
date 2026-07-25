@@ -6,6 +6,7 @@ import { getDb } from '../../lib/db.js';
 import { slugify } from '../../lib/slugify.js';
 import { isSafeUrl } from '../../lib/url.js';
 import { setBusinessTags } from '../../lib/businesses.js';
+import { notifyNewBusiness } from '../../lib/notify.js';
 
 export const prerender = false;
 
@@ -96,6 +97,10 @@ export async function POST({ request }) {
   if (tagIds.length > 0) {
     await setBusinessTags(inserted[0].id, tagIds);
   }
+
+  // Notify (James, Amelia, Andrew) that a new listing came in. Never lets a
+  // notification problem fail the submission -- see notify.js.
+  await notifyNewBusiness({ name, description, address, phone, email, website });
 
   return new Response(JSON.stringify({ ok: true, slug }), {
     status: 200,
