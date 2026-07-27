@@ -94,6 +94,22 @@ const [businesses, allTags] = await Promise.all([
         )}
       </div>
 
+      <form method="POST" action="/api/admin/update-details" style="border-top:1px solid #e2d9bf; padding-top:10px; margin-bottom:10px;">
+        <input type="hidden" name="id" value={business.id} />
+        <input type="hidden" name="status" value={status} />
+        <div style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:#4a4230; margin-bottom:6px;">Fix description / address</div>
+        <label style="display:block; font-size:12px; margin-bottom:8px;">
+          Description
+          <textarea name="description" rows="2" style="width:100%; font:inherit; font-size:13px; padding:6px; margin-top:3px; box-sizing:border-box;">{business.description || ''}</textarea>
+        </label>
+        <label style="display:block; font-size:12px; margin-bottom:8px;">
+          Address
+          <input type="text" name="address" value={business.address || ''} style="width:100%; font:inherit; font-size:13px; padding:6px; margin-top:3px; box-sizing:border-box;" />
+        </label>
+        <button type="submit" class="btn btn-outline" style="border-color:var(--navy); color:var(--navy); padding:5px 12px; font-size:12px;">Save changes</button>
+        <span style="font-size:11px; color:#4a4230; margin-left:8px;">Changing the address re-checks the map pin.</span>
+      </form>
+
       <form method="POST" action="/api/admin/set-tags" style="border-top:1px solid #e2d9bf; padding-top:10px;">
         <input type="hidden" name="id" value={business.id} />
         <input type="hidden" name="status" value={status} />

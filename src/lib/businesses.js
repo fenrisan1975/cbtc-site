@@ -1,4 +1,5 @@
 import { getDb } from './db.js';
+import { geocodeAddress } from './geocode.js';
 
 export async function getCategories() {
   const sql = getDb();
@@ -145,4 +146,38 @@ export async function setBusinessTags(businessId, tagIds) {
     SELECT ${businessId}, tag_id FROM UNNEST(${ids}::int[]) AS tag_id
     ON CONFLICT (business_id, tag_id) DO NOTHING
   `;
+}
+
+// Admin-only: fix typos/mistakes a business owner made at signup. Only
+// description and address are editable here (the fields Andrew asked for) --
+// name/phone/email/etc. can be added the same way later if needed.
+// If the address text actually changed, re-geocode it so the map pin stays
+// in sync (best-effort, same as submit-business.js -- never blocks the
+// save if Nominatim fails or the address can't be found).
+export async function updateBusinessDetails(businessId, { description, address }) {
+  const sql = getDb();
+
+  const [current] = await sql`SELECT address FROM businesses WHERE id = ${businessId}`;
+  if (!current) return null;
+
+  const addressChanged = address !== current.address;
+  const coords = addressChanged ? await geocodeAddress(address) : null;
+
+  if (addressChanged) {
+    await sql`
+      UPDATE businesses
+      SET description = ${description},
+          address = ${address},
+          latitude = ${coords?.latitude ?? null},
+          longitude = ${coords?.longitude ?? null}
+      WHERE id = ${businessId}
+    `;
+  } else {
+    await sql`
+      UPDATE businesses SET description = ${description}
+      WHERE id = ${businessId}
+    `;
+  }
+
+  return { geocoded: addressChanged ? Boolean(coords) : null };
 }
