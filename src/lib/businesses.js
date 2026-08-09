@@ -1,5 +1,6 @@
 import { getDb } from './db.js';
 import { geocodeAddress } from './geocode.js';
+import { isSafeUrl } from './url.js';
 
 export async function getCategories() {
   const sql = getDb();
@@ -148,33 +149,40 @@ export async function setBusinessTags(businessId, tagIds) {
   `;
 }
 
-// Admin-only: fix typos/mistakes a business owner made at signup. Only
-// description and address are editable here (the fields Andrew asked for) --
-// name/phone/email/etc. can be added the same way later if needed.
+// Admin-only: fix typos/mistakes a business owner made at signup.
+// description, address, and website are editable here (the fields Andrew
+// asked for) -- name/phone/email/etc. can be added the same way later if
+// needed.
 // If the address text actually changed, re-geocode it so the map pin stays
 // in sync (best-effort, same as submit-business.js -- never blocks the
 // save if Nominatim fails or the address can't be found).
-export async function updateBusinessDetails(businessId, { description, address }) {
+// Website: blank clears it; a non-blank value must pass the same
+// http(s)-only safety check used at signup (see submit-business.js /
+// lib/url.js) -- an unsafe value is silently dropped rather than saved,
+// same "never block the save" philosophy as the geocoding above.
+export async function updateBusinessDetails(businessId, { description, address, website }) {
   const sql = getDb();
 
-  const [current] = await sql`SELECT address FROM businesses WHERE id = ${businessId}`;
+  const [current] = await sql`SELECT address, website FROM businesses WHERE id = ${businessId}`;
   if (!current) return null;
 
   const addressChanged = address !== current.address;
   const coords = addressChanged ? await geocodeAddress(address) : null;
+  const safeWebsite = !website || isSafeUrl(website) ? website : current.website;
 
   if (addressChanged) {
     await sql`
       UPDATE businesses
       SET description = ${description},
           address = ${address},
+          website = ${safeWebsite},
           latitude = ${coords?.latitude ?? null},
           longitude = ${coords?.longitude ?? null}
       WHERE id = ${businessId}
     `;
   } else {
     await sql`
-      UPDATE businesses SET description = ${description}
+      UPDATE businesses SET description = ${description}, website = ${safeWebsite}
       WHERE id = ${businessId}
     `;
   }
