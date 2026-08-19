@@ -36,11 +36,11 @@ const renderedAt = Date.now();
     </select>
 
     <label>Tags <span style="font-weight:400;">(pick up to 3 — helps people find you)</span></label>
-    <div style="display:flex; flex-wrap:wrap; gap:6px 14px; margin:6px 0 16px;">
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px 14px; margin:6px 0 16px;">
       {tags.map((tag) => (
-        <label style="font-weight:400; font-size:14px; display:flex; align-items:center; gap:5px;">
-          <input type="checkbox" name="tags" value={tag.id} />
-          {tag.name}
+        <label style="font-weight:400; font-size:14px; display:flex; align-items:flex-start; gap:6px;">
+          <input type="checkbox" name="tags" value={tag.id} style="margin-top:3px; flex-shrink:0;" />
+          <span>{tag.name}</span>
         </label>
       ))}
     </div>
