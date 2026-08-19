@@ -112,7 +112,7 @@ label {
   font-size: 13px;
   margin: 14px 0 4px;
 }
-input, textarea, select {
+input:not([type="checkbox"]):not([type="radio"]), textarea, select {
   width: 100%;
   font-family: var(--font-body);
   font-size: 14px;
@@ -121,6 +121,11 @@ input, textarea, select {
   border-radius: 5px;
   background: #fff;
   color: var(--text-dark);
+}
+input[type="checkbox"], input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 textarea {
   min-height: 100px;
