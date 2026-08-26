@@ -12,6 +12,14 @@
 // grants read-only access unless you're the Netlify Team Owner (see
 // Netlify's Database access control docs) -- writing through the app's
 // own runtime sidesteps that entirely.
+//
+// Pass { refreshAll: true } to also re-geocode businesses that already
+// have coordinates -- useful the one time after fixing a geocoding bug
+// that could have silently produced a wrong-but-present pin (see the
+// "Constance Bay" over-suffixing bug fixed 2026-07-26 in geocode.js:
+// addresses that already named a different real West Carleton hamlet,
+// e.g. Arnprior/Kinburn/Woodlawn, could have geocoded to a misleading
+// location instead of just failing outright).
 import { getDb } from '../../../lib/db.js';
 import { geocodeAddress } from '../../../lib/geocode.js';
 
@@ -28,18 +36,28 @@ export async function POST({ request }) {
   const excludeIds = Array.isArray(body.excludeIds)
     ? body.excludeIds.map(Number).filter((n) => Number.isInteger(n) && n > 0)
     : [];
+  const refreshAll = body.refreshAll === true;
 
   const sql = getDb();
 
-  const rows = await sql`
-    SELECT id, name, address
-    FROM businesses
-    WHERE address IS NOT NULL AND address != ''
-      AND (latitude IS NULL OR longitude IS NULL)
-      AND NOT (id = ANY(${excludeIds}))
-    ORDER BY id ASC
-    LIMIT 1
-  `;
+  const rows = refreshAll
+    ? await sql`
+        SELECT id, name, address
+        FROM businesses
+        WHERE address IS NOT NULL AND address != ''
+          AND NOT (id = ANY(${excludeIds}))
+        ORDER BY id ASC
+        LIMIT 1
+      `
+    : await sql`
+        SELECT id, name, address
+        FROM businesses
+        WHERE address IS NOT NULL AND address != ''
+          AND (latitude IS NULL OR longitude IS NULL)
+          AND NOT (id = ANY(${excludeIds}))
+        ORDER BY id ASC
+        LIMIT 1
+      `;
 
   if (rows.length === 0) {
     return new Response(JSON.stringify({ done: true }), {

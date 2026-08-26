@@ -41,6 +41,12 @@ const [businesses, allTags] = await Promise.all([
       map existed). Safe to run more than once — it skips anything already
       geocoded, and takes about a second per business.
     </p>
+    <label style="font-weight:400; font-size:13px; display:flex; align-items:center; gap:6px; margin-bottom:10px;">
+      <input type="checkbox" id="geocode-refresh-all" />
+      Also re-check listings that already have a pin (run this once after a
+      geocoding fix — some earlier pins for towns like Arnprior, Kinburn,
+      Dunrobin, or Woodlawn may have landed in the wrong spot)
+    </label>
     <button id="geocode-backfill-btn" type="button" class="btn btn-outline" style="border-color:var(--navy); color:var(--navy);">
       Backfill map pins
     </button>
@@ -144,12 +150,14 @@ const [businesses, allTags] = await Promise.all([
 
     const btn = document.getElementById('geocode-backfill-btn');
     const log = document.getElementById('geocode-backfill-log');
+    const refreshAllCheckbox = document.getElementById('geocode-refresh-all');
 
     btn.addEventListener('click', async () => {
       btn.disabled = true;
       btn.textContent = 'Backfilling…';
       log.textContent = '';
 
+      const refreshAll = refreshAllCheckbox.checked;
       const excludeIds = [];
       let succeeded = 0;
       let failed = 0;
@@ -160,7 +168,7 @@ const [businesses, allTags] = await Promise.all([
           const res = await fetch('/api/admin/geocode-next', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ excludeIds }),
+            body: JSON.stringify({ excludeIds, refreshAll }),
           });
           data = await res.json();
         } catch (err) {

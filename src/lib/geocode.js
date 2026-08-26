@@ -5,35 +5,81 @@
 // https://operations.osmfoundation.org/policies/nominatim/
 // That's fine here -- geocoding only happens once per new submission
 // (see submit-business.js) or in a slow, deliberately-throttled backfill
-// script (scripts/geocode-existing.js), never on every page view.
+// (scripts/geocode-existing.js, or the "Backfill map pins" button on
+// /admin), never on every page view.
 
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
 const USER_AGENT = 'ConstanceBayTradingCompany/1.0 (constancebaytrading.com)';
 
-// Constance Bay is a small community west of Ottawa. Biasing the search to
-// a viewbox around it (without hard-restricting to it, in case a business
-// address is just outside) makes ambiguous street addresses ("123 Bayview
-// Drive") resolve correctly instead of matching some other "Bayview Drive"
-// in the world.
-const CONSTANCE_BAY_VIEWBOX = '-76.22,45.40,-76.05,45.31'; // lon1,lat1,lon2,lat2
+// The directory covers all of West Carleton, not just Constance Bay proper
+// (Arnprior, Kinburn, Dunrobin, Woodlawn, Fitzroy Harbour, etc. all show up
+// in real listings) -- so the viewbox bias needs to cover that whole area,
+// not just the bay itself. This is a soft bias (bounded=0 below), not a
+// hard restriction.
+const WEST_CARLETON_VIEWBOX = '-76.45,45.50,-75.85,45.25'; // lon1,lat1,lon2,lat2
 
-// Returns { latitude, longitude } or null if the address can't be found or
-// the request fails. Never throws -- callers treat geocoding as best-effort
-// and shouldn't let it block a submission.
-export async function geocodeAddress(address) {
-  const trimmed = (address || '').trim();
-  if (!trimmed) return null;
+const HAS_PROVINCE_OR_COUNTRY = /\b(ontario|canada)\b/i;
 
-  // Most submitted addresses won't include "Constance Bay" / "Ontario" --
-  // append them so Nominatim has enough context to disambiguate.
-  const query = /constance bay/i.test(trimmed) ? trimmed : `${trimmed}, Constance Bay, Ontario, Canada`;
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
+// Appends ", Ontario, Canada" only if the text doesn't already mention
+// either -- avoids stacking redundant/contradictory context.
+function withProvinceContext(text) {
+  const t = (text || '').trim();
+  if (!t) return null;
+  return HAS_PROVINCE_OR_COUNTRY.test(t) ? t : `${t}, Ontario, Canada`;
+}
+
+// Builds a list of query strings to try in order, from most to least
+// specific. Previously this always force-appended ", Constance Bay,
+// Ontario, Canada" -- which broke addresses that already named a
+// different real West Carleton hamlet (e.g. "375 Daniel St S, Arnprior"
+// became "...Arnprior, Constance Bay, Ontario, Canada", matching nothing).
+function buildCandidateQueries(rawAddress) {
+  const candidates = [];
+  const seen = new Set();
+  const push = (q) => {
+    if (q && !seen.has(q)) {
+      seen.add(q);
+      candidates.push(q);
+    }
+  };
+
+  // 1. The address as given, plus province/country context if missing.
+  push(withProvinceContext(rawAddress));
+
+  // 2. Just the last comma-separated segment -- usually the town/hamlet
+  // name ("2898 Galetta Sd Rd, Kinburn" -> "Kinburn"). Vague addresses
+  // with no street number ("Dunrobin Shores") also benefit: this collapses
+  // to roughly the same query as #1, which is fine.
+  const commaParts = rawAddress.split(',');
+  if (commaParts.length > 1) {
+    push(withProvinceContext(commaParts[commaParts.length - 1]));
+  }
+
+  // 3. Addresses naming two places ("Dunrobin / Kinburn", "Dunrobin and
+  // Kinburn") -- try the first one alone. An approximate pin in the right
+  // general area beats no pin at all for a local business directory.
+  const multiPlaceParts = rawAddress
+    .split(/[/&]| and /i)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (multiPlaceParts.length > 1) {
+    push(withProvinceContext(multiPlaceParts[0]));
+  }
+
+  return candidates;
+}
+
+async function queryNominatim(query) {
   const params = new URLSearchParams({
     q: query,
     format: 'jsonv2',
     limit: '1',
-    viewbox: CONSTANCE_BAY_VIEWBOX,
-    bounded: '0', // bias, don't hard-restrict -- some listings may be just outside the bay
+    viewbox: WEST_CARLETON_VIEWBOX,
+    bounded: '0', // bias, don't hard-restrict -- some listings may be just outside this box
   });
 
   try {
@@ -54,4 +100,26 @@ export async function geocodeAddress(address) {
   } catch {
     return null; // network error, rate-limited, malformed response, etc.
   }
+}
+
+// Returns { latitude, longitude } or null if the address can't be found
+// under any fallback, or the request fails. Never throws -- callers treat
+// geocoding as best-effort and shouldn't let it block a submission.
+export async function geocodeAddress(address) {
+  const trimmed = (address || '').trim();
+  if (!trimmed) return null;
+
+  const candidates = buildCandidateQueries(trimmed);
+
+  for (let i = 0; i < candidates.length; i++) {
+    // Space out fallback attempts too, not just calls between different
+    // businesses -- stay under Nominatim's ~1 req/sec usage policy even
+    // when one business needs multiple tries.
+    if (i > 0) await sleep(1100);
+
+    const coords = await queryNominatim(candidates[i]);
+    if (coords) return coords;
+  }
+
+  return null;
 }
