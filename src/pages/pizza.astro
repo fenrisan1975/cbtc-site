@@ -1,0 +1,165 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+// ---- Edit these ----
+const ORDER_EMAIL = 'fenrisan@gmail.com'; // orders are emailed here and e-transfers go here
+const DEADLINE = 'November 15';
+const DELIVERY = 'November 30';
+const PAYMENT = `E-transfer up front to ${ORDER_EMAIL} when you place your order`;
+
+const items = [
+  { code: 'CH', name: 'Chocolate Chunk Cookie Dough', note: '30 pieces', price: 28 },
+  { code: 'DC', name: 'Double Chocolate Cookie Dough', note: '30 pieces', price: 28 },
+  { code: 'OR', name: 'Oatmeal Raisin Cookie Dough', note: '30 pieces', price: 28 },
+  { code: 'PN', name: 'Peanut Butter Cookie Dough', note: '30 pieces', price: 28 },
+  { code: 'SG', name: 'Sugar Cookie Dough', note: '30 pieces', price: 28 },
+  { code: 'C', name: 'Cheese Pizza Kit', note: '3 x 12"', price: 32 },
+  { code: 'P', name: 'Pepperoni Pizza Kit', note: '3 x 12"', price: 33 },
+  { code: 'TC', name: 'Thin Crust Pizza Kit', note: '3 x 12"', price: 33 },
+  { code: 'PP', name: 'Personal Pepperoni Pizza Kit', note: '9 x 6"', price: 33 },
+  { code: 'SS', name: 'Slices-N-Stix Kit', note: '3 x 12"', price: 33 },
+  { code: 'DS', name: 'Detroit-Style Slices-N-Stix Kit', note: '3 slices', price: 32 },
+  { code: 'IB', name: 'Italian Cheese Bread Kit', note: '3 x 10"', price: 32 },
+  { code: 'CB', name: 'Crazy Bread Kit with Crazy Sauce', note: '54 pieces', price: 29 },
+  { code: 'CN', name: 'Cinnamon Crazy Bread Kit with Icing', note: '54 pieces', price: 29 },
+];
+---
+
+<BaseLayout title="James' Hockey Fundraiser | Constance Bay Trading Company">
+  <div class="wrap pizza">
+    <h1>James' Hockey Fundraiser</h1>
+    <p class="lede">Pizza, bread and cookie dough kits. Every order supports the team. Thank you!</p>
+
+    <div class="card info">
+      <div><b>Order by:</b> {DEADLINE}</div>
+      <div><b>Delivery:</b> {DELIVERY}</div>
+      <div><b>Payment:</b> {PAYMENT}</div>
+    </div>
+
+    <h2>1. Choose your kits</h2>
+    <div id="items">
+      {items.map((i) => (
+        <div class="card item" data-code={i.code} data-price={i.price} data-name={i.name}>
+          <div class="item-name">{i.name}<small>{i.note}</small></div>
+          <div class="item-price">${i.price.toFixed(2)}</div>
+          <div class="qty">
+            <button type="button" class="dec" aria-label={`Remove one ${i.name}`}>&minus;</button>
+            <output>0</output>
+            <button type="button" class="inc" aria-label={`Add one ${i.name}`}>+</button>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <h2>2. Your details</h2>
+    <label for="p-name">Name</label>
+    <input id="p-name" autocomplete="name" />
+    <label for="p-email">Email</label>
+    <input id="p-email" type="email" autocomplete="email" />
+    <label for="p-phone">Phone (optional)</label>
+    <input id="p-phone" type="tel" autocomplete="tel" />
+    <label for="p-addr">Delivery address</label>
+    <input id="p-addr" autocomplete="street-address" />
+    <label for="p-notes">Notes (optional)</label>
+    <textarea id="p-notes" placeholder="Anything we should know?"></textarea>
+    <p class="err" id="p-err"></p>
+
+    <div class="card" id="summary" hidden>
+      <strong>Your order is ready to send.</strong>
+      <pre id="summary-text"></pre>
+      <button class="btn" id="copy" type="button">Copy order</button>
+      <p>If your email app didn't open, copy the order above and send it to <b>{ORDER_EMAIL}</b>.</p>
+      <p><b>Last step:</b> please e-transfer your total to <b>{ORDER_EMAIL}</b> to confirm your order.</p>
+    </div>
+  </div>
+
+  <div class="order-bar">
+    <div class="wrap bar-in">
+      <div class="total"><span id="total">$0.00</span><small id="count">0 kits</small></div>
+      <button class="btn" id="send" type="button" disabled>Send order</button>
+    </div>
+  </div>
+
+  <script define:vars={{ ORDER_EMAIL }}>
+    const $ = (id) => document.getElementById(id);
+    const money = (n) => '$' + n.toFixed(2);
+    const rows = [...document.querySelectorAll('.item')].map((el) => ({
+      el, code: el.dataset.code, name: el.dataset.name, price: Number(el.dataset.price), qty: 0,
+    }));
+
+    function totals() {
+      return rows.reduce((a, r) => ({ t: a.t + r.qty * r.price, c: a.c + r.qty }), { t: 0, c: 0 });
+    }
+    function update() {
+      const { t, c } = totals();
+      $('total').textContent = money(t);
+      $('count').textContent = c + (c === 1 ? ' kit' : ' kits');
+      $('send').disabled = c === 0;
+    }
+    rows.forEach((r) => {
+      const out = r.el.querySelector('output');
+      const bump = (d) => { r.qty = Math.max(0, Math.min(99, r.qty + d)); out.textContent = r.qty; update(); };
+      r.el.querySelector('.inc').onclick = () => bump(1);
+      r.el.querySelector('.dec').onclick = () => bump(-1);
+    });
+
+    function buildOrder() {
+      const lines = rows.filter((r) => r.qty).map((r) =>
+        `${r.qty} x ${r.name} (${r.code}) @ ${money(r.price)} = ${money(r.qty * r.price)}`);
+      const { t, c } = totals();
+      const v = (id) => $(id).value.trim();
+      return `James' Hockey Fundraiser order\n\nName: ${v('p-name')}\nEmail: ${v('p-email')}\nPhone: ${v('p-phone') || '-'}\nDelivery address: ${v('p-addr')}\n\n${lines.join('\n')}\n\nTotal: ${money(t)} (${c} kits)\nNotes: ${v('p-notes') || '-'}\n\nPayment: e-transfer of ${money(t)} to ${ORDER_EMAIL}`;
+    }
+
+    $('send').onclick = () => {
+      if (!$('p-name').value.trim() || !/.+@.+\..+/.test($('p-email').value.trim()) || !$('p-addr').value.trim()) {
+        $('p-err').textContent = 'Please enter your name, a valid email and a delivery address.';
+        return;
+      }
+      $('p-err').textContent = '';
+      const body = buildOrder();
+      $('summary-text').textContent = body;
+      $('summary').hidden = false;
+      $('summary').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      location.href = 'mailto:' + ORDER_EMAIL + '?subject=' +
+        encodeURIComponent("Hockey fundraiser order - " + $('p-name').value.trim()) +
+        '&body=' + encodeURIComponent(body);
+    };
+    $('copy').onclick = async () => {
+      try { await navigator.clipboard.writeText($('summary-text').textContent); $('copy').textContent = 'Copied!'; }
+      catch (e) { $('copy').textContent = 'Select and copy manually'; }
+    };
+    update();
+  </script>
+
+  <style>
+    .pizza { padding-bottom: 110px; padding-top: 28px; }
+    .lede { margin: 0 0 16px; }
+    .info { margin: 16px 0; font-size: 15px; }
+    .info b { display: inline-block; min-width: 84px; vertical-align: top; }
+    h2 { margin-top: 28px; }
+    .item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; margin-bottom: 8px; }
+    .item-name { flex: 1; font-weight: 700; }
+    .item-name small { display: block; font-weight: 400; opacity: 0.7; }
+    .item-price { font-weight: 800; white-space: nowrap; }
+    .qty { display: flex; align-items: center; gap: 6px; }
+    .qty button {
+      width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid var(--tan-border);
+      background: var(--cream); color: var(--navy); font-size: 20px; cursor: pointer;
+    }
+    .qty button:hover { background: var(--gold-light); }
+    .qty output { min-width: 24px; text-align: center; font-weight: 800; }
+    .err { color: #a3261e; min-height: 1.2em; font-size: 14px; }
+    #summary { margin-top: 20px; border-color: var(--teal); }
+    #summary pre { white-space: pre-wrap; font-family: inherit; margin: 8px 0; }
+    .order-bar {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+      background: var(--navy); color: var(--cream); padding: 10px 0;
+      border-top: 2px solid var(--gold);
+    }
+    .bar-in { display: flex; align-items: center; gap: 12px; }
+    .total { flex: 1; font-weight: 800; font-size: 20px; }
+    .total small { display: block; font-weight: 400; font-size: 13px; color: var(--gold-light); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  </style>
+</BaseLayout>
